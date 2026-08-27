@@ -124,22 +124,52 @@ function renderStage(pack, events, idx) {
   }
 }
 
+function scrollLogToCurrent(idx) {
+  const log = $("log");
+  const on = log.querySelector(`.log-row[data-i="${idx}"]`);
+  if (!on) return;
+  const top = on.offsetTop - log.clientHeight / 2 + on.offsetHeight / 2;
+  log.scrollTop = Math.max(0, top);
+}
+
+function keepOrderInView(idx) {
+  const stage = $("stage");
+  const pack = state.pack;
+  const ev = idx >= 0 && pack ? state.events[idx] : null;
+  const id = ev ? ev.passer : null;
+  const row = id != null ? stage.querySelector(`.rrow[data-id="${id}"]`) : stage;
+  const panel = stage.closest(".replay-tower-panel") || stage;
+  const target = row || panel;
+  const rect = target.getBoundingClientRect();
+  const pad = 72;
+  if (rect.top >= pad && rect.bottom <= window.innerHeight - 24) return;
+  const y = window.scrollY + rect.top - pad;
+  window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+}
+
 function renderLog(pack, events, idx) {
   const by = driverMap(pack);
   const acr = (id) => (by[id] && by[id].acronym) || "#" + id;
-  $("log").innerHTML = events
-    .map((e, i) => {
-      const cls = i === idx ? "on" : i < idx ? "done" : "";
-      const tag = e.kind === "pit" ? "PIT" : e.position === 1 ? "LEAD" : "PASS";
-      return `<div class="log-row ${cls}" data-i="${i}">
+  const log = $("log");
+  if (log.dataset.count !== String(events.length)) {
+    log.innerHTML = events
+      .map((e, i) => {
+        const tag = e.kind === "pit" ? "PIT" : e.position === 1 ? "LEAD" : "PASS";
+        return `<div class="log-row" data-i="${i}">
         <span>L${e.lap || "—"}</span>
         <span class="tag ${e.kind}${e.position === 1 ? " lead" : ""}">${tag}</span>
         <span>${acr(e.passer)} passes ${acr(e.passed)} → P${e.position}</span>
       </div>`;
-    })
-    .join("");
-  const on = $("log").querySelector(".on");
-  if (on) on.scrollIntoView({ block: "nearest" });
+      })
+      .join("");
+    log.dataset.count = String(events.length);
+  }
+  for (const el of log.querySelectorAll(".log-row")) {
+    const i = Number(el.dataset.i);
+    el.classList.toggle("on", i === idx);
+    el.classList.toggle("done", i < idx);
+  }
+  if (idx >= 0) scrollLogToCurrent(idx);
 }
 
 function renderCall(pack, events, idx) {
@@ -169,6 +199,7 @@ function apply() {
   renderCall(pack, state.events, state.idx);
   $("scrub").value = String(state.idx + 1);
   $("btn-play").textContent = state.playing ? "PAUSE" : "PLAY";
+  if (state.playing || state.idx >= 0) keepOrderInView(state.idx);
 }
 
 function stop() {
@@ -215,6 +246,7 @@ function rebuildEvents() {
   if (!state.pack) return;
   stop();
   $("stage").dataset.ready = "";
+  $("log").dataset.count = "";
   state.events = filteredEvents(state.pack);
   state.idx = -1;
   $("scrub").max = String(state.events.length);

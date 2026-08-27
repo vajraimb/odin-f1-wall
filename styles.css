@@ -410,7 +410,12 @@ body.insights #climate-panel { scroll-margin-top: 12px; }
   border-left: 3px solid transparent;
   transition: transform 280ms ease, background 180ms ease, border-color 180ms ease;
 }
-.rrow.pass { background: #18222a; border-left-color: var(--green); }
+.rrow.pass {
+  background: #143326;
+  border-left-color: var(--green);
+  z-index: 2;
+  box-shadow: inset 0 0 0 1px rgba(61, 255, 154, 0.35);
+}
 .rrow.victim { background: #241818; border-left-color: var(--red); }
 .rrow.gone { opacity: 0; }
 .rpos { color: var(--dim); }

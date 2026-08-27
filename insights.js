@@ -81,9 +81,11 @@ async function loadInsights() {
   croot.innerHTML = ckeys
     .map((k) => {
       const c = climates[k];
+      const sessions = (c.sessions || []).join(", ") || k;
       return `<div class="card">
         <h3>${c.circuit || k}</h3>
         <div>样本 ${c.n_races} 场</div>
+        <div>场次 ${sessions}</div>
         <div>SC/红旗场次 ${(100 * (c.sc_race_frac || 0)).toFixed(0)}%</div>
         <div>中性化圈 ${(100 * (c.sc_lap_frac || 0)).toFixed(1)}%</div>
         <div>降雨场次 ${(100 * (c.rain_race_frac || 0)).toFixed(0)}%</div>

@@ -39,7 +39,7 @@ function renderPredictions(preds) {
 }
 
 async function loadInsights() {
-  const r = await fetch("api/insights.json");
+  const r = await fetch("api/insights.json", { cache: "no-store" });
   if (!r.ok) {
     document.getElementById("pace").innerHTML = `<div class="empty">还没有速度榜数据。先跑 odin run cmd/pace。</div>`;
     document.getElementById("predict-body").innerHTML = `<div class="empty">还没有赛前预测。</div>`;
@@ -76,6 +76,8 @@ async function loadInsights() {
   const ckeys = Object.keys(climates).sort((a, b) =>
     String(climates[a].circuit || a).localeCompare(climates[b].circuit || b)
   );
+  const countEl = document.getElementById("climate-count");
+  if (countEl) countEl.textContent = ckeys.length ? String(ckeys.length) : "";
   if (!ckeys.length) {
     croot.innerHTML = `<div class="empty">还没有气候数据。先跑 odin run cmd/climate。</div>`;
     return;

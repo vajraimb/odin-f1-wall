@@ -4,9 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>INSIGHTS · STRAT WALL</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body class="insights">
   <header class="top">
     <div class="brand">
       <span class="live-dot"></span>
@@ -23,8 +26,8 @@
     <h2>清洁圈速榜</h2>
     <div id="pace"></div>
   </section>
-  <section class="panel stint-panel">
-    <h2>赛道气候</h2>
+  <section class="panel stint-panel" id="climate-panel">
+    <h2>赛道气候 <span id="climate-count"></span></h2>
     <div class="cards" id="climate"></div>
   </section>
   <footer class="caveats">公开圈时拟合。没有油量、胎温和车队气象。气候是历史频率，不是本场预报。</footer>

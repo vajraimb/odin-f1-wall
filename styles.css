@@ -19,7 +19,8 @@
 html, body { margin: 0; background: var(--bg); color: var(--text); }
 html:not(.insights),
 body:not(.insights) {
-  height: 100%;
+  min-height: 100%;
+  height: auto;
 }
 body {
   font-family: "IBM Plex Sans", sans-serif;
@@ -161,7 +162,8 @@ select {
   grid-template-columns: minmax(280px, 1.1fr) minmax(280px, 1fr) minmax(280px, 1.15fr);
   gap: 8px;
   padding: 8px;
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 280px;
 }
 .panel {
   background: var(--panel);
@@ -269,7 +271,12 @@ select {
 .pct { text-align: right; color: var(--text); }
 .epos { text-align: right; color: var(--dim); }
 
-.stint-panel { margin: 0 8px 8px; }
+.stint-panel {
+  margin: 0 8px 8px;
+  flex: 0 0 auto;
+  overflow: visible;
+  min-height: unset;
+}
 html.insights,
 html:has(body.insights) {
   height: auto !important;

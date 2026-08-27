@@ -120,7 +120,7 @@ function renderCall(board) {
   const c = board.call;
   const t = board.target;
   if (!c) {
-    el.innerHTML = `<div class="empty">No simulation for this driver. Run cmd/simulate first.</div>`;
+    el.innerHTML = `<div class="empty">本场还没有复盘模拟。未开赛请看 <a href="insights.html#predict">赛前粗预测</a>。</div>`;
     return;
   }
   const stay = (c.best_action || "").toLowerCase().includes("stay");

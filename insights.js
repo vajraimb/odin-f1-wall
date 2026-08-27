@@ -1,10 +1,52 @@
+function pct(x) {
+  if (x == null || Number.isNaN(x)) return "—";
+  return (100 * x).toFixed(1) + "%";
+}
+
+function renderPredictions(preds) {
+  const el = document.getElementById("predict-body");
+  if (!preds || !preds.length) {
+    el.innerHTML = `<div class="empty">还没有赛前预测。跑 odin run cmd/predict 后再 publish。</div>`;
+    return;
+  }
+  el.innerHTML = preds
+    .map((p) => {
+      const rows = (p.candidates || [])
+        .slice()
+        .sort((a, b) => (b.win_prob || 0) - (a.win_prob || 0))
+        .slice(0, 8)
+        .map((c) => {
+          const cls = c.prior ? "actual" : c.label === p.best_label ? "best" : "";
+          return `<div class="srow ${cls}">
+            <div><div class="slabel">${c.prior ? "● " : ""}${c.label}</div></div>
+            <div class="pct">${pct(c.win_prob)}</div>
+            <div class="epos">E${Number(c.expected_pos).toFixed(1)}</div>
+          </div>`;
+        })
+        .join("");
+      const notes = (p.notes || []).map((n) => `<div>${n}</div>`).join("");
+      return `<div class="call-kicker">${p.circuit || ""} · ${p.acronym} #${p.driver} · 先验 P${p.grid_pos || "?"} · 不是复盘</div>
+        <div class="call-action stay">${p.best_label || "—"}</div>
+        <div class="metrics">
+          <div class="metric"><div class="lbl">P(WIN)</div><div class="val">${pct(p.win_prob)}</div><div class="sub">先验 ${p.prior_label || "—"}</div></div>
+          <div class="metric"><div class="lbl">E[POS]</div><div class="val">${Number(p.expected_pos).toFixed(1)}</div><div class="sub">领奖台 ${pct(p.podium_prob)}</div></div>
+        </div>
+        <div class="call-note">气候窗口 ${p.window_start ? "L" + p.window_start + "–L" + p.window_end : "—"} · 首次进站中位 ${p.median_first_stop ? "L" + p.median_first_stop : "—"}</div>
+        <div style="margin-top:14px">${rows}</div>
+        <div class="caveats" style="padding:10px 0 0">${notes}</div>`;
+    })
+    .join("<hr style='border:0;border-top:1px solid #1c222b;margin:18px 0' />");
+}
+
 async function loadInsights() {
   const r = await fetch("api/insights.json");
   if (!r.ok) {
     document.getElementById("pace").innerHTML = `<div class="empty">还没有速度榜数据。先跑 odin run cmd/pace。</div>`;
+    document.getElementById("predict-body").innerHTML = `<div class="empty">还没有赛前预测。</div>`;
     return;
   }
   const data = await r.json();
+  renderPredictions(data.predictions || []);
   const paces = data.paces || {};
   const keys = Object.keys(paces).sort((a, b) => Number(b) - Number(a));
   const paceRoot = document.getElementById("pace");

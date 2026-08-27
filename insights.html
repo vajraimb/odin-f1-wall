@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="insights">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=climate6" />
 </head>
 <body class="insights">
   <header class="top">
@@ -15,22 +15,23 @@
       <span class="live-dot"></span>
       STRAT WALL
       <a class="nav" href="index.html">BOARD</a>
+      <a class="nav" href="#climate-panel">CLIMATE</a>
     </div>
-    <div class="meta">赛前粗预测 · 清洁圈速 · 赛道气候</div>
+    <div class="meta">赛前粗预测 · 赛道气候 · 清洁圈速</div>
   </header>
   <section class="panel call-panel" id="predict">
     <h2>赛前粗预测</h2>
     <div id="predict-body"></div>
   </section>
-  <section class="panel stint-panel">
-    <h2>清洁圈速榜</h2>
-    <div id="pace"></div>
-  </section>
   <section class="panel stint-panel" id="climate-panel">
     <h2>赛道气候 <span id="climate-count"></span></h2>
     <div class="cards" id="climate"></div>
   </section>
+  <section class="panel stint-panel">
+    <h2>清洁圈速榜</h2>
+    <div id="pace"></div>
+  </section>
   <footer class="caveats">公开圈时拟合。没有油量、胎温和车队气象。气候是历史频率，不是本场预报。</footer>
-  <script src="insights.js"></script>
+  <script src="insights.js?v=climate6"></script>
 </body>
 </html>

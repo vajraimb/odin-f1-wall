@@ -3,6 +3,15 @@ function pct(x) {
   return (100 * x).toFixed(1) + "%";
 }
 
+function pctInt(x) {
+  return (100 * (Number(x) || 0)).toFixed(0) + "%";
+}
+
+function lapMark(n) {
+  const v = Number(n);
+  return Number.isFinite(v) && v > 0 ? "L" + v : "—";
+}
+
 function renderPredictions(preds) {
   const el = document.getElementById("predict-body");
   if (!preds || !preds.length) {
@@ -38,11 +47,23 @@ function renderPredictions(preds) {
     .join("<hr style='border:0;border-top:1px solid #1c222b;margin:18px 0' />");
 }
 
+function useStaticApi() {
+  return location.hostname.endsWith("github.io") || location.protocol === "https:";
+}
+
+function insightsUrl() {
+  return useStaticApi() ? "api/insights.json" : "/api/insights";
+}
+
 async function loadInsights() {
-  const r = await fetch("api/insights.json", { cache: "no-store" });
+  let r = await fetch(insightsUrl(), { cache: "no-store" });
+  if (!r.ok) {
+    r = await fetch("api/insights.json", { cache: "no-store" });
+  }
   if (!r.ok) {
     document.getElementById("pace").innerHTML = `<div class="empty">还没有速度榜数据。先跑 odin run cmd/pace。</div>`;
     document.getElementById("predict-body").innerHTML = `<div class="empty">还没有赛前预测。</div>`;
+    document.getElementById("climate").innerHTML = `<div class="empty">还没有气候数据。先跑 odin run cmd/climate。</div>`;
     return;
   }
   const data = await r.json();
@@ -85,16 +106,19 @@ async function loadInsights() {
   croot.innerHTML = ckeys
     .map((k) => {
       const c = climates[k];
-      const sessions = (c.sessions || []).join(", ") || k;
+      const sessions = (c.sessions || []).join(" · ") || k;
+      const window =
+        Number(c.window_start) > 0
+          ? lapMark(c.window_start) + "–" + lapMark(c.window_end)
+          : "—";
       return `<div class="card">
         <h3>${c.circuit || k}</h3>
-        <div>样本 ${c.n_races} 场</div>
-        <div>场次 ${sessions}</div>
-        <div>SC/红旗场次 ${(100 * (c.sc_race_frac || 0)).toFixed(0)}%</div>
-        <div>中性化圈 ${(100 * (c.sc_lap_frac || 0)).toFixed(1)}%</div>
-        <div>降雨场次 ${(100 * (c.rain_race_frac || 0)).toFixed(0)}%</div>
-        <div>首次进站 ${c.median_first_stop ? "L" + c.median_first_stop : "—"}</div>
-        <div>窗口 ${c.window_start ? "L" + c.window_start + "–L" + c.window_end : "—"}</div>
+        <div class="card-kicker">样本 ${c.n_races || 0} 场 · ${sessions}</div>
+        <div class="card-row"><span>SC/红旗场次</span><b>${pctInt(c.sc_race_frac)}</b></div>
+        <div class="card-row"><span>中性化圈</span><b>${pct(c.sc_lap_frac)}</b></div>
+        <div class="card-row"><span>降雨场次</span><b>${pctInt(c.rain_race_frac)}</b></div>
+        <div class="card-row"><span>首次进站</span><b>${lapMark(c.median_first_stop)}</b></div>
+        <div class="card-row"><span>窗口</span><b>${window}</b></div>
       </div>`;
     })
     .join("");

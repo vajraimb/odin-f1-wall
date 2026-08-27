@@ -73,7 +73,9 @@ async function loadInsights() {
   }
   const climates = data.climates || {};
   const croot = document.getElementById("climate");
-  const ckeys = Object.keys(climates);
+  const ckeys = Object.keys(climates).sort((a, b) =>
+    String(climates[a].circuit || a).localeCompare(climates[b].circuit || b)
+  );
   if (!ckeys.length) {
     croot.innerHTML = `<div class="empty">还没有气候数据。先跑 odin run cmd/climate。</div>`;
     return;

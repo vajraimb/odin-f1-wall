@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="replay">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OVERTAKE REPLAY · STRAT WALL</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=replay1" />
+</head>
+<body class="replay">
+  <header class="top">
+    <div class="brand">
+      <span class="live-dot"></span>
+      STRAT WALL
+      <a class="nav" href="index.html">BOARD</a>
+      <a class="nav" href="insights.html">INSIGHTS</a>
+    </div>
+    <div class="meta" id="meta">overtake replay</div>
+    <div class="controls">
+      <label>SESSION
+        <select id="session"></select>
+      </label>
+    </div>
+  </header>
+
+  <div class="flags replay-controls">
+    <button type="button" id="btn-play">PLAY</button>
+    <button type="button" id="btn-step">STEP</button>
+    <button type="button" id="btn-reset">RESET</button>
+    <label>SPEED
+      <select id="speed">
+        <option value="700">1x</option>
+        <option value="350" selected>2x</option>
+        <option value="160">4x</option>
+        <option value="70">8x</option>
+      </select>
+    </label>
+    <label>SHOW
+      <select id="filter">
+        <option value="track" selected>on-track</option>
+        <option value="all">all swaps</option>
+        <option value="lead">lead changes</option>
+      </select>
+    </label>
+    <span class="pill" id="count-pill"></span>
+  </div>
+
+  <div class="replay-call" id="call">GRID</div>
+  <input class="replay-scrub" id="scrub" type="range" min="0" max="0" value="0" />
+
+  <main class="replay-grid">
+    <section class="panel replay-tower-panel">
+      <h2>LIVE ORDER <span id="lap-sub"></span></h2>
+      <div class="replay-stage" id="stage"></div>
+    </section>
+    <section class="panel">
+      <h2>OVERTAKES</h2>
+      <div class="replay-log" id="log"></div>
+    </section>
+  </main>
+
+  <footer class="caveats" id="caveats"></footer>
+  <script src="replay.js?v=replay1"></script>
+</body>
+</html>

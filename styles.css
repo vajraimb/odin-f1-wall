@@ -46,6 +46,30 @@ body {
   background: var(--red);
   box-shadow: 0 0 8px var(--red);
 }
+.nav {
+  margin-left: 14px;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  color: var(--amber);
+  text-decoration: none;
+}
+.nav:hover { color: var(--cyan); }
+.insight-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+}
+.insight-table th, .insight-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.insight-table th { color: var(--dim); font-size: 10px; letter-spacing: 0.1em; }
+.insight-table td.num { text-align: right; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; margin-bottom: 16px; }
+.card { border: 1px solid var(--line); padding: 10px 12px; }
+.card h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; color: var(--amber); }
 .meta {
   font-family: "IBM Plex Mono", monospace;
   font-size: 12px;

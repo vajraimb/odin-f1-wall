@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html data-static="1" lang="zh-CN" class="races">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RACES · STRAT WALL</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=races1" />
+</head>
+<body class="races">
+  <header class="top">
+    <div class="brand">
+      <span class="live-dot"></span>
+      STRAT WALL
+      <a class="nav" href="index.html">BOARD</a>
+      <a class="nav" href="replay.html">REPLAY</a>
+      <a class="nav" href="insights.html">INSIGHTS</a>
+    </div>
+    <div class="meta" id="meta">loading…</div>
+    <div class="controls race-controls">
+      <label>YEAR
+        <select id="year"><option value="">all</option></select>
+      </label>
+      <label>STATUS
+        <select id="status">
+          <option value="">all</option>
+          <option value="simulated">simulated</option>
+          <option value="raw">raw only</option>
+          <option value="pending">no laps</option>
+        </select>
+      </label>
+      <label>SEARCH
+        <input id="search" type="search" placeholder="circuit · country · key" autocomplete="off" />
+      </label>
+    </div>
+  </header>
+
+  <div class="flags race-summary" id="summary"></div>
+
+  <section class="panel jobs-panel" id="jobs-panel" hidden>
+    <h2>JOBS <span id="jobs-sub"></span></h2>
+    <div id="jobs"></div>
+  </section>
+
+  <main id="races"></main>
+
+  <footer class="caveats" id="caveats">
+    RND 是本地已缓存场次在该年中的顺序，只有整年都抓取后才等于官方轮次。
+    SIMULATED 表示 data/results 已有该场复盘；RAW 表示只有 OpenF1 原始数据，可直接运行模拟（缺 results.json 时会先 fetch）；NO LAPS 表示尚未开赛或圈时未抓取，只能赛前预测。
+  </footer>
+
+  <dialog id="run-dialog" class="run-dialog">
+    <form method="dialog" id="run-form">
+      <h2 id="run-title">RUN SIMULATION</h2>
+      <div class="run-kicker" id="run-kicker"></div>
+      <div class="run-fields" id="run-fields">
+        <label>DRIVER
+          <select id="run-driver" required></select>
+        </label>
+        <label class="sim-only">FORK / FROM LAP
+          <input id="run-from" type="number" min="1" max="120" value="20" required />
+        </label>
+        <label class="sim-only">TO LAP
+          <input id="run-to" type="number" min="1" max="120" value="32" required />
+        </label>
+        <label class="sim-only">RIVAL REACT
+          <select id="run-react"><option value="">frozen (none)</option></select>
+        </label>
+        <label class="sim-only">ITERATIONS
+          <input id="run-iter" type="number" min="1" max="4096" placeholder="128" />
+        </label>
+      </div>
+      <div class="run-note" id="run-note"></div>
+      <pre class="run-cmd" id="run-cmd"></pre>
+      <div class="run-error" id="run-error"></div>
+      <div class="run-actions">
+        <button type="button" class="btn" id="run-cancel">CANCEL</button>
+        <button type="submit" class="btn primary" id="run-submit">START</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="races.js?v=races1"></script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html data-static="1" lang="zh-CN">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,13 +7,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=replay1" />
+  <link rel="stylesheet" href="styles.css?v=explain1" />
 </head>
 <body>
   <header class="top">
     <div class="brand">
       <span class="live-dot"></span>
       STRAT WALL
+      <a class="nav" href="races.html">RACES</a>
       <a class="nav" href="insights.html">INSIGHTS</a>
       <a class="nav" href="replay.html">REPLAY</a>
       <a class="nav" href="insights.html#predict">PREDICT</a>
@@ -58,12 +59,17 @@
     </section>
   </main>
 
+  <section class="panel stint-panel explain-panel" id="explain-panel" hidden>
+    <h2>策略解读 <span id="explain-sub"></span></h2>
+    <div id="explain"></div>
+  </section>
+
   <section class="panel stint-panel">
     <h2>STINT MAP <span>white pit · red halt · cyan fork</span></h2>
     <div id="stints"></div>
   </section>
 
   <footer class="caveats" id="caveats"></footer>
-  <script src="app.js"></script>
+  <script src="app.js?v=explain1"></script>
 </body>
 </html>

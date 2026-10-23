@@ -2,10 +2,29 @@ const $ = (id) => document.getElementById(id);
 
 const params = new URLSearchParams(location.search);
 const state = {
-  session: params.get("session") || "9636",
-  driver: params.get("driver") || "4",
+  session: params.get("session") || "",
+  driver: params.get("driver") || "",
   react: params.get("react") ?? "",
 };
+let catalogCache = { sessions: [] };
+
+function sessionEntry(key) {
+  return (catalogCache.sessions || []).find((s) => String(s.session_key) === String(key));
+}
+
+function reviewedDrivers(key) {
+  const s = sessionEntry(key);
+  return (s && s.review_drivers) || [];
+}
+
+function pickDriverForSession(key, preferred) {
+  const reviewed = reviewedDrivers(key).map(String);
+  if (preferred && reviewed.includes(String(preferred))) return String(preferred);
+  if (!preferred && reviewed.length) return reviewed[0];
+  if (preferred) return String(preferred);
+  if (reviewed.length) return reviewed[0];
+  return "1";
+}
 
 function tyreClass(compound) {
   const u = (compound || "").toUpperCase();
@@ -28,7 +47,8 @@ function pos(x) {
 }
 
 function useStaticApi() {
-  return location.hostname.endsWith("github.io") || location.protocol === "https:";
+  if (document.documentElement.dataset.static === "1") return true;
+  return location.hostname.endsWith("github.io") || location.protocol === "https:" || location.protocol === "file:";
 }
 
 function catalogUrl() {
@@ -48,44 +68,65 @@ function boardUrl() {
   return `api/${state.session}-${state.driver}${react}.json`;
 }
 
-async function loadJSON(url) {
-  const r = await fetch(url);
+async function loadJSON(url, opts) {
+  const r = await fetch(url, opts);
   if (!r.ok) {
-    throw new Error(url + " " + r.status);
+    let msg = url + " " + r.status;
+    try {
+      const body = await r.json();
+      if (body && body.error) msg = body.error;
+    } catch (_) {
+      /* keep the status message */
+    }
+    throw new Error(msg);
   }
   return r.json();
 }
 
 async function loadCatalog() {
   const cat = await loadJSON(catalogUrl());
+  const races = (cat.sessions || [])
+    .filter((s) => (s.session_name || "Race") === "Race")
+    .slice()
+    .sort((a, b) => {
+      const ar = (a.review_drivers || []).length ? 0 : 1;
+      const br = (b.review_drivers || []).length ? 0 : 1;
+      if (ar !== br) return ar - br;
+      return String(b.date || "").localeCompare(String(a.date || ""));
+    });
+  catalogCache = { sessions: races };
   const sel = $("session");
   sel.innerHTML = "";
-  for (const s of cat.sessions) {
+  for (const s of races) {
     const opt = document.createElement("option");
     opt.value = s.session_key;
-    opt.textContent = `${s.session_key}  ${s.circuit} ${s.session_name}  ${s.date}${s.wet ? "  WET" : ""}`;
+    const mark = (s.review_drivers || []).length ? "  ●" : "";
+    opt.textContent = `${s.session_key}  ${s.circuit} ${s.session_name}  ${s.date}${s.wet ? "  WET" : ""}${mark}`;
     sel.appendChild(opt);
   }
-  if (![...sel.options].some((o) => o.value === state.session) && sel.options.length) {
-    state.session = sel.options[0].value;
+  if (!state.session || ![...sel.options].some((o) => o.value === state.session)) {
+    const withReview = races.find((s) => (s.review_drivers || []).length);
+    state.session = String((withReview || races[0] || {}).session_key || "");
   }
   sel.value = state.session;
+  state.driver = pickDriverForSession(state.session, state.driver);
 }
 
 function fillDrivers(board) {
   const sel = $("driver");
-  const prev = state.driver;
+  const reviewed = new Set(reviewedDrivers(state.session).map(String));
   sel.innerHTML = "";
   for (const row of board.tower) {
     const opt = document.createElement("option");
     opt.value = row.driver;
-    opt.textContent = `${row.acronym}  #${row.driver}`;
+    opt.textContent = `${row.acronym}  #${row.driver}${reviewed.has(String(row.driver)) ? "  ●" : ""}`;
     sel.appendChild(opt);
   }
-  if (![...sel.options].some((o) => o.value === String(prev)) && sel.options.length) {
-    state.driver = sel.options[0].value;
-  } else {
-    state.driver = prev;
+  if (![...sel.options].some((o) => o.value === String(state.driver))) {
+    state.driver = pickDriverForSession(state.session, "");
+    if (![...sel.options].some((o) => o.value === String(state.driver)) && sel.options.length) {
+      state.driver = sel.options[0].value;
+    }
   }
   sel.value = state.driver;
   $("react").value = state.react;
@@ -120,9 +161,14 @@ function renderCall(board) {
   const c = board.call;
   const t = board.target;
   if (!c) {
-    el.innerHTML = `<div class="empty">本场还没有复盘模拟。未开赛请看 <a href="insights.html#predict">赛前粗预测</a>。</div>`;
+    const run = useStaticApi()
+      ? ""
+      : `<div class="sim-hint">在 <a href="races.html?session=${encodeURIComponent(state.session)}&run=${encodeURIComponent(state.session)}">RACES</a> 页为 ${t.acronym || "#" + t.driver} 运行模拟；完成后这里会自动刷新。</div><div class="sim-hint" id="job-hint"></div>`;
+    el.innerHTML = `<div class="empty">本场还没有复盘模拟。未开赛请看 <a href="insights.html#predict">赛前粗预测</a>。${run}</div>`;
+    watchJobs();
     return;
   }
+  stopWatchingJobs();
   const stay = (c.best_action || "").toLowerCase().includes("stay");
   const compound = c.best_compound_short && c.best_compound_short !== "?" ? c.best_compound_short : (c.best_compound || "");
   const action = stay ? "STAY OUT" : `PIT ${compound}`.trim();
@@ -158,6 +204,51 @@ function renderCall(board) {
       ${c.iterations ? `<br />${c.iterations} Monte Carlo rolls · ${c.mode || ""}` : ""}
       ${rf}
     </div>`;
+}
+
+// While the board has no simulation, poll the local job runner so a result written by
+// the RACES page (or by hand) shows up without a manual reload.
+let jobTimer = null;
+let jobSeen = new Map();
+
+function stopWatchingJobs() {
+  clearTimeout(jobTimer);
+  jobTimer = null;
+}
+
+function watchJobs() {
+  stopWatchingJobs();
+  if (useStaticApi()) return;
+  const session = state.session;
+  const driver = state.driver;
+  const tick = async () => {
+    if (state.session !== session || state.driver !== driver) return;
+    let data;
+    try {
+      data = await loadJSON(`/api/jobs?session=${encodeURIComponent(session)}&driver=${encodeURIComponent(driver)}`);
+    } catch (_) {
+      return; // no backend: stop polling
+    }
+    const jobs = (data.jobs || []).filter((j) => j.kind === "simulate");
+    const active = jobs.find((j) => j.status === "running" || j.status === "queued");
+    const hint = $("job-hint");
+    let finished = false;
+    for (const j of jobs) {
+      const prev = jobSeen.get(j.id);
+      if (prev && prev !== j.status && j.status === "done") finished = true;
+      jobSeen.set(j.id, j.status);
+    }
+    if (finished) {
+      await loadCatalog();
+      await refresh();
+      return;
+    }
+    if (hint) {
+      hint.textContent = active ? `simulation ${active.status}${active.steps > 1 ? ` · step ${active.step}/${active.steps}` : ""} …` : "";
+    }
+    jobTimer = setTimeout(tick, active ? 2000 : 8000);
+  };
+  tick();
 }
 
 function renderLadder(board) {
@@ -239,6 +330,7 @@ function renderHeader(board) {
 function renderFlags(board) {
   const f = board.flags || {};
   const pills = [];
+  if (useStaticApi()) pills.push(`<span class="pill dimp" title="模拟和未缓存的 AI 解读需要本机 strat_wall.py">只读 · 本地版可运行</span>`);
   if (f.wet_race) pills.push(`<span class="pill wet">WET</span>`);
   if (f.rainfall) pills.push(`<span class="pill rain">RAIN</span>`);
   if (f.phase_at_fork) pills.push(`<span class="pill phase ${f.phase_at_fork}">${String(f.phase_at_fork).replaceAll("_", " ")}</span>`);
@@ -260,6 +352,123 @@ function renderFlags(board) {
 
 function renderCaveats(board) {
   $("caveats").textContent = (board.caveats || []).join("  ·  ");
+}
+
+function esc(v) {
+  return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+// Minimal Markdown for the LLM text: headings, bullets, bold, inline code, paragraphs.
+function miniMarkdown(text) {
+  const out = [];
+  let list = [];
+  const flush = () => {
+    if (list.length) out.push(`<ul>${list.join("")}</ul>`);
+    list = [];
+  };
+  const inline = (s) =>
+    esc(s)
+      .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>");
+  for (const raw of String(text || "").split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) {
+      flush();
+      continue;
+    }
+    const h = /^(#{1,6})\s+(.*)$/.exec(line);
+    const li = /^(?:[-*•]|\d+[.、)])\s+(.*)$/.exec(line);
+    if (h) {
+      flush();
+      out.push(`<h4>${inline(h[2])}</h4>`);
+    } else if (li) {
+      list.push(`<li>${inline(li[1])}</li>`);
+    } else {
+      flush();
+      out.push(`<p>${inline(line)}</p>`);
+    }
+  }
+  flush();
+  return out.join("");
+}
+
+const CONF_ZH = { high: "可信度高", medium: "可信度中", low: "可信度低" };
+
+function renderAnalysis(board) {
+  const panel = $("explain-panel");
+  const a = board.analysis;
+  if (!a) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  const conf = a.confidence || "medium";
+  $("explain-sub").innerHTML = `<span class="pill conf ${conf}">${CONF_ZH[conf] || conf}</span>`;
+  if (a.error) {
+    $("explain").innerHTML = `<div class="empty">${esc(a.error)}</div>`;
+    return;
+  }
+  const sections = (a.sections || [])
+    .map((s) => `<div class="xsec"><h4>${esc(s.title)}</h4><ul>${(s.lines || []).map((l) => `<li>${esc(l)}</li>`).join("")}</ul></div>`)
+    .join("");
+  const steps = (a.next_steps || []).length
+    ? `<div class="xsec"><h4>下一步</h4>${a.next_steps
+        .map((n) => `<div class="xstep"><span>${esc(n.why)}</span><code>${esc(n.cmd)}</code></div>`)
+        .join("")}</div>`
+    : "";
+  const run = a.run || {};
+  const runLine = run.command
+    ? `<div class="xrun">${esc(run.command)}${run.finished_at ? ` · ${esc(run.finished_at)}` : ""}</div>`
+    : "";
+  let llm = "";
+  const canAsk = !useStaticApi() && a.llm_available;
+  if (a.llm && a.llm.text) {
+    llm = `<div class="xsec xllm">
+      <h4>AI 解读 <span class="xmeta">${esc(a.llm.model || "")} · ${esc(a.llm.generated_at || "")}</span>
+        ${canAsk ? `<button type="button" class="btn sm" id="llm-btn" data-force="1">重新生成</button>` : ""}</h4>
+      <div class="xllm-body">${miniMarkdown(a.llm.text)}</div></div>`;
+  } else if (canAsk) {
+    llm = `<div class="xsec xllm"><button type="button" class="btn sm primary" id="llm-btn">AI 解读（调用 LLM）</button>
+      <span class="xmeta" id="llm-status">把上面的数字交给 ODIN_LLM_MODEL 写一段工程简报；结果缓存到 data/explain。</span></div>`;
+  } else if (useStaticApi()) {
+    llm = `<div class="xsec xllm"><button type="button" class="btn sm disabled" disabled>AI 解读</button>
+      <span class="local-hint">本地版可运行</span>
+      <span class="xmeta">在线看板只展示已缓存的解读，不会调用模型。</span></div>`;
+  }
+  $("explain").innerHTML = `<div class="xverdict">${esc(a.verdict)}</div>${runLine}<div class="xgrid">${sections}${steps}</div>${llm}${reportBlock(board)}`;
+  const btn = $("llm-btn");
+  if (btn && !useStaticApi()) btn.addEventListener("click", () => askLlm(btn.dataset.force === "1"));
+}
+
+function reportBlock(board) {
+  const md = board && board.report;
+  if (!md) return "";
+  return `<details class="xreport"><summary>复盘报告 <span class="xmeta">${esc((board && board.result_file) || "")}</span></summary><div class="xllm-body">${miniMarkdown(md)}</div></details>`;
+}
+
+async function askLlm(force) {
+  if (useStaticApi()) return;
+  const btn = $("llm-btn");
+  const status = $("llm-status");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "生成中…";
+  }
+  try {
+    const analysis = await loadJSON("/api/explain", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session: state.session, driver: state.driver, react: state.react, force }),
+    });
+    renderAnalysis({ analysis });
+  } catch (err) {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = force ? "重新生成" : "AI 解读（调用 LLM）";
+    }
+    if (status) status.textContent = err.message;
+    else if (btn) btn.insertAdjacentHTML("afterend", `<span class="xmeta xerr">${esc(err.message)}</span>`);
+  }
 }
 
 function syncUrl() {
@@ -292,13 +501,14 @@ async function refresh() {
   renderTower(board);
   renderCall(board);
   renderLadder(board);
+  renderAnalysis(board);
   renderStints(board);
   renderCaveats(board);
 }
 
 $("session").addEventListener("change", async (e) => {
   state.session = e.target.value;
-  state.driver = "1";
+  state.driver = pickDriverForSession(state.session, "");
   await refresh();
 });
 $("driver").addEventListener("change", (e) => {

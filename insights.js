@@ -48,7 +48,8 @@ function renderPredictions(preds) {
 }
 
 function useStaticApi() {
-  return location.hostname.endsWith("github.io") || location.protocol === "https:";
+  if (document.documentElement.dataset.static === "1") return true;
+  return location.hostname.endsWith("github.io") || location.protocol === "https:" || location.protocol === "file:";
 }
 
 function insightsUrl() {
